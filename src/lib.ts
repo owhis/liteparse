@@ -19,9 +19,9 @@ export type {
   LiteParseConfig,
   OutputFormat,
   ParseResult,
-  PageResult,
+  // PageResult,
   BoundingBox,
   TextItem,
-  ImageItem,
-  TableItem
+  // ImageItem,
+  // TableItem
 } from './core/types.js';

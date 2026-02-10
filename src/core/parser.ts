@@ -2,6 +2,7 @@ import { LiteParseConfig, ParseResult, ScreenshotResult } from './types.js';
 import { mergeConfig } from './config.js';
 import { PdfEngine } from '../engines/pdf/interface.js';
 import { PdfJsEngine } from '../engines/pdf/pdfjs.js';
+import { PdfiumRenderer } from '../engines/pdf/pdfium-renderer.js';
 import { OcrEngine } from '../engines/ocr/interface.js';
 import { TesseractEngine } from '../engines/ocr/tesseract.js';
 import { HttpOcrEngine } from '../engines/ocr/http-simple.js';
@@ -138,7 +139,7 @@ export class LiteParse {
   }
 
   /**
-   * Generate screenshots of PDF pages
+   * Generate screenshots of PDF pages using PDFium
    */
   async screenshot(
     filePath: string,
@@ -151,38 +152,47 @@ export class LiteParse {
 
     log(`Generating screenshots for: ${filePath}`);
 
-    // Load PDF document
+    // Load PDF document to get page count and dimensions
     const doc = await this.pdfEngine.loadDocument(filePath);
+    const totalPages = doc.numPages;
 
     const results: ScreenshotResult[] = [];
-    const pages = pageNumbers || Array.from({ length: doc.numPages }, (_, i) => i + 1);
+    const pages = pageNumbers || Array.from({ length: totalPages }, (_, i) => i + 1);
 
-    for (const pageNum of pages) {
-      if (pageNum < 1 || pageNum > doc.numPages) {
-        console.error(`Skipping invalid page number: ${pageNum}`);
-        continue;
+    // Initialize PDFium renderer
+    const renderer = new PdfiumRenderer();
+
+    try {
+      for (const pageNum of pages) {
+        if (pageNum < 1 || pageNum > totalPages) {
+          console.error(`Skipping invalid page number: ${pageNum}`);
+          continue;
+        }
+
+        log(`Rendering page ${pageNum}...`);
+
+        // Render page using PDFium
+        const imageBuffer = await renderer.renderPageToBuffer(
+          filePath,
+          pageNum,
+          this.config.dpi
+        );
+
+        // Get page dimensions from pdfjs
+        const pageData = await this.pdfEngine.extractPage(doc, pageNum);
+
+        results.push({
+          pageNum,
+          width: pageData.width,
+          height: pageData.height,
+          imageBuffer,
+        });
       }
-
-      log(`Rendering page ${pageNum}...`);
-      const imageBuffer = await this.pdfEngine.renderPageImage(
-        doc,
-        pageNum,
-        this.config.dpi
-      );
-
-      // Get page dimensions
-      const pageData = await this.pdfEngine.extractPage(doc, pageNum);
-
-      results.push({
-        pageNum,
-        width: pageData.width,
-        height: pageData.height,
-        imageBuffer,
-      });
+    } finally {
+      // Clean up resources
+      await renderer.close();
+      await this.pdfEngine.close(doc);
     }
-
-    // Close PDF document
-    await this.pdfEngine.close(doc);
 
     log(`Generated ${results.length} screenshots`);
     return results;
