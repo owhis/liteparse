@@ -64,8 +64,9 @@ This is the core algorithm that converts raw PDF text items into readable, prope
 1. Converts `TextItem[]` to `ProjectionTextBox[]` with additional metadata
 2. Processes embedded images for OCR if enabled
 3. Filters images by size, position, and type
-4. Filters OCR results that overlap with existing text (50% threshold)
-5. Returns combined text boxes for grid projection
+4. Filters OCR results that overlap with existing text (50% spatial threshold)
+5. Filters OCR results whose text content already exists in native PDF text (content-based deduplication)
+6. Returns combined text boxes for grid projection
 
 `buildBoundingBoxes(textItems)` - Simple conversion of text items to `BoundingBox[]` format (x1, y1, x2, y2).
 
@@ -76,8 +77,9 @@ This is the core algorithm that converts raw PDF text items into readable, prope
 - `MIN_IMAGE_DIMENSION = 12` - Skip tiny images
 - `MIN_IMAGE_AREA = 200` - Skip small-area images
 
-**Design Decision:**
-OCR overlap filtering prevents duplicate text when both PDF text extraction and OCR detect the same content. Native PDF text is preferred over OCR.
+**Design Decisions:**
+- **Spatial overlap filtering**: Prevents duplicate text when OCR and PDF extraction detect the same content at the same location. Native PDF text is preferred over OCR.
+- **Content-based deduplication**: Filters OCR text that matches existing PDF text content regardless of position. This handles cases like watermarks or embedded images containing text that already appears elsewhere on the page.
 
 ---
 
