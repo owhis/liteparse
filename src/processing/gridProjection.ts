@@ -1165,7 +1165,7 @@ export function projectToGrid(
     if (!config.preserveLayoutAlignmentAcrossPages) {
       const sizes = getMedianTextBoxSize(lines.slice(block.start, block.end).flat());
       medianWidth = sizes.width;
-      
+
       // medianHeight updated but not currently used per-block - reserved for future use
       void sizes.height;
     }

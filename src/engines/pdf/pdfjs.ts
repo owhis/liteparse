@@ -5,6 +5,47 @@ import { PdfEngine, PdfDocument, PageData, Path, Image, Annotation } from "./int
 import { TextItem } from "../../core/types.js";
 import { PdfiumRenderer } from "./pdfium-renderer.js";
 
+/** PDF.js internal document type - opaque to our code */
+interface PdfJsDocument {
+  numPages: number;
+  getPage(pageNum: number): Promise<PdfJsPage>;
+  getMetadata(): Promise<unknown>;
+  destroy(): Promise<void>;
+}
+
+/** PDF.js internal page type */
+interface PdfJsPage {
+  getViewport(params: { scale: number }): PdfJsViewport;
+  getTextContent(): Promise<PdfJsTextContent>;
+  cleanup(): Promise<void>;
+}
+
+/** PDF.js viewport type */
+interface PdfJsViewport {
+  width: number;
+  height: number;
+  transform: number[];
+}
+
+/** PDF.js text content type */
+interface PdfJsTextContent {
+  items: PdfJsTextItem[];
+}
+
+/** PDF.js text item type */
+interface PdfJsTextItem {
+  str: string;
+  transform: number[];
+  width: number;
+  height: number;
+  fontName?: string;
+}
+
+/** Extended PdfDocument with internal PDF.js document reference */
+interface PdfJsExtendedDocument extends PdfDocument {
+  _pdfDocument: PdfJsDocument;
+}
+
 // Dynamic import of PDF.js
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -110,11 +151,11 @@ export class PdfJsEngine implements PdfEngine {
       data,
       metadata,
       _pdfDocument: pdfDocument,
-    } as PdfDocument & { _pdfDocument: any };
+    } as PdfJsExtendedDocument;
   }
 
   async extractPage(doc: PdfDocument, pageNum: number): Promise<PageData> {
-    const pdfDocument = (doc as any)._pdfDocument;
+    const pdfDocument = (doc as PdfJsExtendedDocument)._pdfDocument;
     const page = await pdfDocument.getPage(pageNum);
 
     // Get viewport
@@ -127,7 +168,7 @@ export class PdfJsEngine implements PdfEngine {
     const viewportTransform = viewport.transform;
 
     const textItems: TextItem[] = [];
-    for (const item of textContent.items as any[]) {
+    for (const item of textContent.items) {
       // Skip items with zero dimensions
       if (item.height === 0 || item.width === 0) continue;
 
@@ -262,7 +303,7 @@ export class PdfJsEngine implements PdfEngine {
   }
 
   async close(doc: PdfDocument): Promise<void> {
-    const pdfDocument = (doc as any)._pdfDocument;
+    const pdfDocument = (doc as PdfJsExtendedDocument)._pdfDocument;
     if (pdfDocument && pdfDocument.destroy) {
       await pdfDocument.destroy();
     }

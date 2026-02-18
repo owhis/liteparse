@@ -12,7 +12,7 @@ export interface PdfEngine {
 export interface PdfDocument {
   numPages: number;
   data: Uint8Array;
-  metadata?: any;
+  metadata?: unknown;
 }
 
 export interface PageData {

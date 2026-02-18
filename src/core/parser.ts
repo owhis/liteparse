@@ -1,6 +1,6 @@
-import { LiteParseConfig, ParseResult, ScreenshotResult } from "./types.js";
+import { LiteParseConfig, ParseResult, ScreenshotResult, TextItem } from "./types.js";
 import { mergeConfig } from "./config.js";
-import { PdfEngine } from "../engines/pdf/interface.js";
+import { PdfEngine, PdfDocument, PageData } from "../engines/pdf/interface.js";
 import { PdfJsEngine } from "../engines/pdf/pdfjs.js";
 import { PdfiumRenderer } from "../engines/pdf/pdfium-renderer.js";
 import { OcrEngine } from "../engines/ocr/interface.js";
@@ -198,7 +198,11 @@ export class LiteParse {
   /**
    * Run OCR on pages that need it
    */
-  private async runOCR(doc: any, pages: any[], log: (msg: string) => void): Promise<void> {
+  private async runOCR(
+    doc: PdfDocument,
+    pages: PageData[],
+    log: (msg: string) => void
+  ): Promise<void> {
     if (!this.ocrEngine) return;
 
     log("Running OCR on pages...");
@@ -208,7 +212,7 @@ export class LiteParse {
 
       // Check if page has very little text (indicating need for OCR)
       const textLength = page.textItems.reduce(
-        (sum: number, item: any) => sum + item.str.length,
+        (sum: number, item: TextItem) => sum + item.str.length,
         0
       );
 
@@ -246,7 +250,7 @@ export class LiteParse {
                 .filter((s: string) => s.length > 0)
             );
 
-            const ocrTextItems = ocrResults
+            const ocrTextItems: TextItem[] = ocrResults
               .filter((r) => r.confidence > 0.1) // Filter low confidence
               .filter((r) => {
                 // Filter out OCR text that already exists in native PDF text
@@ -259,9 +263,10 @@ export class LiteParse {
                 y: r.bbox[1],
                 width: r.bbox[2] - r.bbox[0],
                 height: r.bbox[3] - r.bbox[1],
+                w: r.bbox[2] - r.bbox[0],
+                h: r.bbox[3] - r.bbox[1],
                 fontName: "OCR",
                 fontSize: r.bbox[3] - r.bbox[1],
-                fromOcr: true,
               }));
 
             // Add OCR text items directly to page textItems

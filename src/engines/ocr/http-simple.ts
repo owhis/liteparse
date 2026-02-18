@@ -3,6 +3,12 @@ import FormData from "form-data";
 import fs from "fs";
 import { OcrEngine, OcrOptions, OcrResult } from "./interface.js";
 
+interface HttpOcrResponseItem {
+  text: string;
+  bbox: [number, number, number, number];
+  confidence: number;
+}
+
 /**
  * HTTP-based OCR engine that conforms to LiteParse OCR API specification.
  *
@@ -46,9 +52,9 @@ export class HttpOcrEngine implements OcrEngine {
 
       console.warn("Got OCR results from server");
 
-      return results.map((item: any) => ({
+      return results.map((item: HttpOcrResponseItem) => ({
         text: item.text,
-        bbox: item.bbox as [number, number, number, number],
+        bbox: item.bbox,
         confidence: item.confidence,
       }));
     } catch (error) {

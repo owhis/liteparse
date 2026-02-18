@@ -310,10 +310,17 @@ export function detectTables(paths: Path[], textItems: TextItem[] = []): Detecte
   return tables;
 }
 
+/** Extracted table structure */
+export interface TableStructure {
+  rows: number;
+  cols: number;
+  cells: TableCell[];
+}
+
 /**
  * Extract table structure from detected table region
  */
-export function extractTableStructure(table: DetectedTable, _paths: Path[]): any {
+export function extractTableStructure(table: DetectedTable, _paths: Path[]): TableStructure {
   return {
     rows: table.rows,
     cols: table.cols,

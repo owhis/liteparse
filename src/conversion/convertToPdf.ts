@@ -289,13 +289,19 @@ async function convertImageToPdf(filePath: string, outputDir: string): Promise<s
     if (errorMsg.includes("gs") && errorMsg.includes("command not found")) {
       throw new Error(
         `Ghostscript is required to convert ${ext.toUpperCase().slice(1)} files but is not installed. ` +
-          "On macOS: brew install ghostscript, On Ubuntu: apt-get install ghostscript"
+          "On macOS: brew install ghostscript, On Ubuntu: apt-get install ghostscript",
+        {
+          cause: error,
+        }
       );
     }
     if (errorMsg.includes("FailedToExecuteCommand") && errorMsg.includes("gs")) {
       throw new Error(
         `Ghostscript failed during ${ext.toUpperCase().slice(1)} conversion. ` +
-          "Ensure Ghostscript is properly installed: brew install ghostscript"
+          "Ensure Ghostscript is properly installed: brew install ghostscript",
+        {
+          cause: error,
+        }
       );
     }
     throw error;

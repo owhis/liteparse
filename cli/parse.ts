@@ -6,6 +6,54 @@ import { LiteParse } from "../src/core/parser.js";
 import { LiteParseConfig, OutputFormat } from "../src/core/types.js";
 import { performance } from "perf_hooks";
 
+const DEFAULT_MAX_PAGES = 10000;
+const DEFAULT_DPI = 150;
+const DEFAULT_LANGUAGE = "en";
+const DEFAULT_OUTPUT_FORMAT = "text";
+const DEFAULT_SCREENSHOT_FORMAT = "png";
+const DEFAULT_SCREENSHOT_DIR = "./screenshots";
+
+interface ParseCommandOptions {
+  output?: string;
+  format?: string;
+  ocrServerUrl?: string;
+  ocr?: boolean;
+  ocrLanguage?: string;
+  maxPages?: string;
+  targetPages?: string;
+  dpi?: string;
+  tables?: boolean;
+  preciseBbox?: boolean;
+  skipDiagonalText?: boolean;
+  preserveSmallText?: boolean;
+  config?: string;
+  quiet?: boolean;
+}
+
+interface ScreenshotCommandOptions {
+  outputDir?: string;
+  pages?: string;
+  dpi?: string;
+  format?: string;
+  config?: string;
+  quiet?: boolean;
+}
+
+interface BatchParseCommandOptions {
+  format?: string;
+  ocrServerUrl?: string;
+  ocr?: boolean;
+  ocrLanguage?: string;
+  maxPages?: string;
+  dpi?: string;
+  tables?: boolean;
+  preciseBbox?: boolean;
+  recursive?: boolean;
+  extension?: string;
+  config?: string;
+  quiet?: boolean;
+}
+
 const program = new Command();
 
 program
@@ -17,20 +65,20 @@ program
   .command("parse <file>")
   .description("Parse a document file (PDF, DOCX, XLSX, PPTX, images, etc.)")
   .option("-o, --output <file>", "Output file path")
-  .option("--format <format>", "Output format: json|text", "text")
+  .option("--format <format>", "Output format: json|text", DEFAULT_OUTPUT_FORMAT)
   .option("--ocr-server-url <url>", "HTTP OCR server URL (uses Tesseract if not provided)")
   .option("--no-ocr", "Disable OCR")
-  .option("--ocr-language <lang>", "OCR language(s)", "en")
-  .option("--max-pages <n>", "Max pages to parse", "1000")
+  .option("--ocr-language <lang>", "OCR language(s)", DEFAULT_LANGUAGE)
+  .option("--max-pages <n>", "Max pages to parse", DEFAULT_MAX_PAGES.toString())
   .option("--target-pages <pages>", 'Target pages (e.g., "1-5,10,15-20")')
-  .option("--dpi <dpi>", "DPI for rendering", "150")
+  .option("--dpi <dpi>", "DPI for rendering", DEFAULT_DPI.toString())
   .option("--no-tables", "Disable table detection")
   .option("--no-precise-bbox", "Disable precise bounding boxes")
   .option("--skip-diagonal-text", "Skip diagonal text")
   .option("--preserve-small-text", "Preserve very small text")
   .option("--config <file>", "Config file (JSON)")
   .option("-q, --quiet", "Suppress progress output")
-  .action(async (file: string, options: any) => {
+  .action(async (file: string, options: ParseCommandOptions) => {
     try {
       const quiet = options.quiet || false;
 
@@ -59,9 +107,9 @@ program
         ocrEnabled: options.ocr !== false,
         ocrServerUrl: options.ocrServerUrl,
         ocrLanguage: options.ocrLanguage,
-        maxPages: parseInt(options.maxPages),
+        maxPages: parseInt(options.maxPages || DEFAULT_MAX_PAGES.toString()),
         targetPages: options.targetPages,
-        dpi: parseInt(options.dpi),
+        dpi: parseInt(options.dpi || DEFAULT_DPI.toString()),
         tableDetection: options.tables !== false,
         preciseBoundingBox: options.preciseBbox !== false,
         skipDiagonalText: options.skipDiagonalText || false,
@@ -96,10 +144,12 @@ program
         // Output result to stdout (can be piped)
         console.log(output);
       }
-    } catch (error: any) {
-      console.error(`\nError: ${error.message}`);
-      if (error.stack) {
-        console.error(error.stack);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      console.error(`\nError: ${message}`);
+      if (stack) {
+        console.error(stack);
       }
       process.exit(1);
     }
@@ -108,13 +158,13 @@ program
 program
   .command("screenshot <file>")
   .description("Generate screenshots of PDF pages")
-  .option("-o, --output-dir <dir>", "Output directory for screenshots", "./screenshots")
+  .option("-o, --output-dir <dir>", "Output directory for screenshots", DEFAULT_SCREENSHOT_DIR)
   .option("--pages <pages>", 'Page numbers to screenshot (e.g., "1,3,5" or "1-5")')
-  .option("--dpi <dpi>", "DPI for rendering", "150")
-  .option("--format <format>", "Image format: png|jpg", "png")
+  .option("--dpi <dpi>", "DPI for rendering", DEFAULT_DPI.toString())
+  .option("--format <format>", "Image format: png|jpg", DEFAULT_SCREENSHOT_FORMAT)
   .option("--config <file>", "Config file (JSON)")
   .option("-q, --quiet", "Suppress progress output")
-  .action(async (file: string, options: any) => {
+  .action(async (file: string, options: ScreenshotCommandOptions) => {
     try {
       const quiet = options.quiet || false;
 
@@ -139,7 +189,7 @@ program
       // Override with CLI options
       config = {
         ...config,
-        dpi: parseInt(options.dpi),
+        dpi: parseInt(options.dpi || DEFAULT_DPI.toString()),
       };
 
       // Parse target pages
@@ -148,9 +198,11 @@ program
         pageNumbers = parsePageNumbers(options.pages);
       }
 
+      const outputDir = options.outputDir || DEFAULT_SCREENSHOT_DIR;
+
       // Create output directory
-      if (!existsSync(options.outputDir)) {
-        await fs.mkdir(options.outputDir, { recursive: true });
+      if (!existsSync(outputDir)) {
+        await fs.mkdir(outputDir, { recursive: true });
       }
 
       // Create parser
@@ -161,8 +213,8 @@ program
 
       // Save screenshots
       for (const result of results) {
-        const filename = `page_${result.pageNum}.${options.format}`;
-        const filepath = `${options.outputDir}/${filename}`;
+        const filename = `page_${result.pageNum}.${options.format || DEFAULT_SCREENSHOT_FORMAT}`;
+        const filepath = `${outputDir}/${filename}`;
         await fs.writeFile(filepath, result.imageBuffer);
         if (!quiet) {
           console.error(`✓ ${filepath} (${result.width}x${result.height})`);
@@ -170,12 +222,14 @@ program
       }
 
       if (!quiet) {
-        console.error(`\n✓ Generated ${results.length} screenshots → ${options.outputDir}`);
+        console.error(`\n✓ Generated ${results.length} screenshots → ${outputDir}`);
       }
-    } catch (error: any) {
-      console.error(`\nError: ${error.message}`);
-      if (error.stack) {
-        console.error(error.stack);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      console.error(`\nError: ${message}`);
+      if (stack) {
+        console.error(stack);
       }
       process.exit(1);
     }
@@ -226,19 +280,19 @@ const SUPPORTED_EXTENSIONS = new Set([
 program
   .command("batch-parse <input-dir> <output-dir>")
   .description("Parse multiple documents in batch mode")
-  .option("--format <format>", "Output format: json|text", "text")
+  .option("--format <format>", "Output format: json|text", DEFAULT_OUTPUT_FORMAT)
   .option("--ocr-server-url <url>", "HTTP OCR server URL (uses Tesseract if not provided)")
   .option("--no-ocr", "Disable OCR")
-  .option("--ocr-language <lang>", "OCR language(s)", "en")
-  .option("--max-pages <n>", "Max pages to parse per file", "1000")
-  .option("--dpi <dpi>", "DPI for rendering", "150")
+  .option("--ocr-language <lang>", "OCR language(s)", DEFAULT_LANGUAGE)
+  .option("--max-pages <n>", "Max pages to parse per file", DEFAULT_MAX_PAGES.toString())
+  .option("--dpi <dpi>", "DPI for rendering", DEFAULT_DPI.toString())
   .option("--no-tables", "Disable table detection")
   .option("--no-precise-bbox", "Disable precise bounding boxes")
   .option("--recursive", "Recursively search input directory")
   .option("--extension <ext>", 'Only process files with this extension (e.g., ".pdf")')
   .option("--config <file>", "Config file (JSON)")
   .option("-q, --quiet", "Suppress progress output")
-  .action(async (inputDir: string, outputDir: string, options: any) => {
+  .action(async (inputDir: string, outputDir: string, options: BatchParseCommandOptions) => {
     try {
       const quiet = options.quiet || false;
       const startTime = performance.now();
@@ -261,7 +315,7 @@ program
       }
 
       // Find all files to process
-      const files = findFiles(inputDir, options.recursive, options.extension);
+      const files = findFiles(inputDir, options.recursive || false, options.extension);
 
       if (files.length === 0) {
         console.error("No supported files found in input directory");
@@ -290,8 +344,8 @@ program
         ocrEnabled: options.ocr !== false,
         ocrServerUrl: options.ocrServerUrl,
         ocrLanguage: options.ocrLanguage,
-        maxPages: parseInt(options.maxPages),
-        dpi: parseInt(options.dpi),
+        maxPages: parseInt(options.maxPages || DEFAULT_MAX_PAGES.toString()),
+        dpi: parseInt(options.dpi || DEFAULT_DPI.toString()),
         tableDetection: options.tables !== false,
         preciseBoundingBox: options.preciseBbox !== false,
       };
@@ -336,10 +390,11 @@ program
               `[${i + 1}/${files.length}] ✓ ${relativePath} (${result.pages.length} pages, ${fileTime}ms)`
             );
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           errorCount++;
           if (!quiet) {
-            console.error(`[${i + 1}/${files.length}] ✗ ${relativePath}: ${error.message}`);
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(`[${i + 1}/${files.length}] ✗ ${relativePath}: ${message}`);
           }
         }
       }
@@ -358,10 +413,12 @@ program
       if (errorCount > 0) {
         process.exit(1);
       }
-    } catch (error: any) {
-      console.error(`\nError: ${error.message}`);
-      if (error.stack) {
-        console.error(error.stack);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      console.error(`\nError: ${message}`);
+      if (stack) {
+        console.error(stack);
       }
       process.exit(1);
     }

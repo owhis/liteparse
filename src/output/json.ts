@@ -1,9 +1,9 @@
-import { ParseResult, ParsedPage } from "../core/types.js";
+import { ParseResult, ParsedPage, ParseResultJson } from "../core/types.js";
 
 /**
  * Build JSON output from parsed pages
  */
-export function buildJSON(pages: ParsedPage[]): any {
+export function buildJSON(pages: ParsedPage[]): ParseResultJson {
   return {
     pages: pages.map((page) => ({
       page: page.pageNum,
