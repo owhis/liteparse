@@ -666,9 +666,17 @@ export function bboxToLine(
   medianWidth: number,
   medianHeight: number
 ): ProjectionTextBox[][] {
-  // sort lines on  first y axis then x axis (top - left)
+  // Y-tolerance for sorting: items within this threshold are considered same line
+  // This handles floating point precision issues between columns (e.g., 334.7400 vs 334.7399)
+  const Y_SORT_TOLERANCE = 2.0;
+
+  // Note: We keep whitespace items as they may be needed for proper word separation.
+  // The spacing calculation handles gaps between items.
+
+  // sort lines on first y axis then x axis (top - left)
+  // Use Y tolerance so items on same visual line sort by x regardless of tiny y differences
   textBbox.sort((a, b) => {
-    if (a.y == b.y) {
+    if (Math.abs(a.y - b.y) < Y_SORT_TOLERANCE) {
       return a.x - b.x;
     }
     return a.y - b.y;
@@ -752,6 +760,7 @@ export function bboxToLine(
           break;
         }
       }
+
       if (
         !lineCollide &&
         ((bbox.y + bbox.h * 0.5 >= lineMinY && bbox.y + bbox.h * 0.5 <= lineMaxY) ||
@@ -1140,6 +1149,17 @@ export function projectToGrid(
           const xDelta = bbox.x - (prevBbox.x + prevBbox.w);
           const prevCharWidth = prevBbox.w / prevBbox.strLength;
           if (xDelta > prevCharWidth * 2) {
+            // Check if both items are clearly within the same column
+            // Use start x-coordinate for left column check, not x + w, to handle
+            // items that extend near the column boundary
+            const pageMidpoint = page.width * 0.5;
+            const prevInLeftColumn = prevBbox.x < pageMidpoint - 30;
+            const bboxInLeftColumn = bbox.x < pageMidpoint - 30;
+            const prevInRightColumn = prevBbox.x > pageMidpoint + 10;
+            const bboxInRightColumn = bbox.x > pageMidpoint + 10;
+            const bothInSameColumn =
+              (prevInLeftColumn && bboxInLeftColumn) || (prevInRightColumn && bboxInRightColumn);
+
             // insert column spacing if any of:
             // - gap is more than an approximate tab (8x average char width)
             // - previous bbox is right snap
@@ -1152,9 +1172,12 @@ export function projectToGrid(
               (prevBbox.snap && prevBbox.snap === "right") ||
               (bbox.snap && prevBbox.snap)
             ) {
-              bbox.shouldSpace = COLUMN_SPACES;
+              // If both items are in the same column, limit spacing to avoid
+              // preserving justified text gaps from PDFs
+              bbox.shouldSpace = bothInSameColumn ? FLOATING_SPACES : COLUMN_SPACES;
             } else {
-              bbox.shouldSpace = FLOATING_SPACES;
+              // For items in the same column, use minimal spacing
+              bbox.shouldSpace = bothInSameColumn ? 1 : FLOATING_SPACES;
             }
           }
         } else {
@@ -1235,7 +1258,19 @@ export function projectToGrid(
           if (!bbox.forceUnsnapped) {
             const floatingAnchor = forwardAnchors.floating[Math.round(bbox.x)];
             if (floatingAnchor && targetX < floatingAnchor) {
-              targetX = floatingAnchor;
+              // Only apply floating anchor alignment if it doesn't create excessive gaps
+              // For items within a single column (not near the page midpoint), limit the gap
+              const pageMidpoint = page.width * 0.5;
+              const isInLeftColumn = bbox.x + bbox.w < pageMidpoint - 20;
+              const isInRightColumn = bbox.x > pageMidpoint + 20;
+              const isClearlyInOneColumn = isInLeftColumn || isInRightColumn;
+
+              // Limit floating anchor adjustment to avoid excessive gaps in justified text
+              const maxFloatingGap = isClearlyInOneColumn ? 4 : floatingAnchor;
+              const adjustedAnchor = Math.min(floatingAnchor, targetX + maxFloatingGap);
+              if (adjustedAnchor > targetX) {
+                targetX = adjustedAnchor;
+              }
             }
           }
 

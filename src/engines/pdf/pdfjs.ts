@@ -87,30 +87,6 @@ function applyTransformation(
   };
 }
 
-/**
- * Decompose transformation matrix to get scale factors using SVD
- * This computes the singular values of the 2D transformation matrix
- */
-function singularValueDecompose2dScale(m: number[]): { x: number; y: number } {
-  // Create transpose of the 2x2 part of the matrix
-  const transpose = [m[0], m[2], m[1], m[3]];
-
-  // Multiply matrix m with its transpose to get eigenvalues
-  const a = m[0] * transpose[0] + m[1] * transpose[2];
-  const b = m[0] * transpose[1] + m[1] * transpose[3];
-  const c = m[2] * transpose[0] + m[3] * transpose[2];
-  const d = m[2] * transpose[1] + m[3] * transpose[3];
-
-  // Solve the second degree polynomial to get roots (eigenvalues)
-  const first = (a + d) / 2;
-  const second = Math.sqrt((a + d) ** 2 - 4 * (a * d - c * b)) / 2;
-  const sx = first + second || 1;
-  const sy = first - second || 1;
-
-  // Scale values are the square roots of the eigenvalues
-  return { x: Math.sqrt(sx), y: Math.sqrt(sy) };
-}
-
 // Pre-compiled regex patterns for string decoding
 const BUGGY_FONT_MARKER_REGEX = /:->\|>_(\d+)_\d+_<\|<-:/g;
 const BUGGY_FONT_MARKER_CHECK = ":->|>";
@@ -268,11 +244,18 @@ export class PdfJsEngine implements PdfEngine {
       // Get lower-left corner (text space origin)
       const ll = applyTransformation({ x: 0, y: 0 }, cm);
 
-      // Get scale factors to properly size the bounding box
-      const scale = singularValueDecompose2dScale(item.transform);
+      // Extract scale factors directly from matrix components (not SVD).
+      // For matrix [a, b, c, d, tx, ty]:
+      // - Horizontal scale = sqrt(a² + b²)
+      // - Vertical scale = sqrt(c² + d²)
+      // This correctly preserves axis association unlike SVD which returns
+      // singular values sorted by magnitude (causing x/y swap for some fonts).
+      const scaleX = Math.sqrt(item.transform[0] ** 2 + item.transform[1] ** 2);
+      const scaleY = Math.sqrt(item.transform[2] ** 2 + item.transform[3] ** 2);
 
-      // Get upper-right corner
-      const ur = applyTransformation({ x: item.width / scale.x, y: item.height / scale.y }, cm);
+      // Get upper-right corner by first converting width/height to text space
+      // (dividing by the scale factors), then transforming to viewport space
+      const ur = applyTransformation({ x: item.width / scaleX, y: item.height / scaleY }, cm);
 
       // Calculate final bounding box in viewport space
       const left = Math.min(ll.x, ur.x);
