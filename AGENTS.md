@@ -54,10 +54,11 @@ Both PDF and OCR functionality use interface-based abstraction (`PdfEngine`, `Oc
 - Future possibility of custom conversion engines for non-PDF formats
 
 ### 2. Spatial Grid Projection
-The most complex (and important!) part of the codebase (`src/processing/gridProjection.ts`, ~1500 lines). Uses:
+The most complex (and important!) part of the codebase (`src/processing/gridProjection.ts`, ~1650 lines). Uses:
 - **Anchor-based layout**: Tracks text alignment (left, right, center, floating)
 - **Forward anchors**: Carry alignment information between lines
 - **Column detection**: Identifies multi-column layouts
+- **Rotation handling**: Transforms 90°, 180°, 270° rotated text to correct reading order
 - **OCR merging**: Combines native PDF text with OCR results
 
 ### 3. Selective OCR

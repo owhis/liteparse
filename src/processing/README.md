@@ -11,7 +11,7 @@ Simply merges user config with defaults and calls `projectPagesToGridComplete`. 
 
 ---
 
-### gridProjection.ts (~1500 lines)
+### gridProjection.ts (~1650 lines)
 **The most complex module - spatial text layout reconstruction.**
 
 This is the core algorithm that converts raw PDF text items into readable, properly-ordered text that preserves document layout.
@@ -33,24 +33,49 @@ This is the core algorithm that converts raw PDF text items into readable, prope
    - Enables consistent column detection across the page
    - Prevents duplicate text detection (`isDup` flag)
 
+4. **Rotation Handling**: PDFs can contain rotated text (90°, 180°, 270°)
+   - `handleRotationReadingOrder()` transforms rotated text to reading order
+   - Groups text by rotation value, not just position
+   - For 90°/270° text without visual overlap: transforms coordinates to maintain reading order
+   - For 90°/270° text with overlap: keeps in place but marks as rotated
+   - For 180° text: flips coordinates to correct upside-down text
+
+5. **Margin Line Number Detection**: Two-column documents often have line numbers in the gutter
+   - Detects short numeric items (1-2 digits) near the page midpoint
+   - Marks them as `isMarginLineNumber` to prevent merging with column content
+   - Ensures line numbers appear on their own line
+
 **Algorithm Flow:**
 1. Build bounding boxes from text items and OCR data
-2. Sort text into lines by Y-coordinate
-3. Extract anchor points from all text items
-4. Detect text snapping (left, right, center, or floating)
-5. Project lines onto character grid with proper spacing
-6. Apply markup tags (highlight, underline, strikeout)
-7. Clean up sparse blocks and margins
+2. Handle rotated text reading order (`handleRotationReadingOrder`)
+3. Sort text into lines by Y-coordinate (`bboxToLine`)
+4. Extract anchor points from all text items (`extractAnchorsPointsFromLines`)
+5. Try to align floating text with nearby anchors (`tryAlignFloating`)
+6. Detect text snapping (left, right, center, or floating)
+7. Project lines onto character grid with proper spacing
+8. Apply markup tags (highlight, underline, strikeout)
+9. Clean up sparse blocks and margins
+
+**Key Functions:**
+- `handleRotationReadingOrder()` - Transform rotated text to correct reading order
+- `bboxToLine()` - Group text items into lines with Y-tolerance for subscripts
+- `extractAnchorsPointsFromLines()` - Identify alignment anchors and deduplicate
+- `tryAlignFloating()` - Align floating bboxes with anchors on adjacent lines
+- `projectToGrid()` - Main projection algorithm
+- `projectPagesToGrid()` - Process all pages with shared anchors
 
 **Constants:**
 - `FLOATING_SPACES = 2` - Minimum spaces between floating text
 - `COLUMN_SPACES = 4` - Minimum spaces between columns
-- `SMALL_FONT_SIZE_THRESHOLD = 2` - Filter very small text (2pt)
+- `SMALL_FONT_SIZE_THRESHOLD = 2` - Filter very small text (2pt @ 72 DPI)
+- `Y_SORT_TOLERANCE` - Tolerance for same-line detection (scales with median height, min 5.0)
 
 **Design Decisions:**
 - **Anchor rounding**: Groups anchor x-coords by nearest 1/4 unit to handle slight variations
-- **Sparse block compression**: Reduces excessive whitespace in sparse layouts (>70% whitespace)
+- **Sparse block compression**: Reduces excessive whitespace in sparse layouts (>80% whitespace)
 - **Small text filtering**: Lines with >50% small text can be filtered (configurable)
+- **Rotation grouping**: Text is grouped by rotation value before processing, so rotated blocks stay together even when X coordinates overlap with non-rotated content
+- **Y-tolerance sorting**: Items within `Y_SORT_TOLERANCE` are considered same line, handling floating-point precision and subscripts/superscripts
 
 ---
 

@@ -80,7 +80,7 @@ function filterUnprojectableText(
   config: LiteParseConfig,
   line: ProjectionTextBox[]
 ): ProjectionTextBox[] {
-  // extract all text (OSS always uses fast mode)
+  // Filter text items that would break projection (e.g., very small text)
   if (line.length === 0) {
     return line;
   }
@@ -111,7 +111,7 @@ function canSnapLine(config: LiteParseConfig, line: ProjectionTextBox[]): boolea
 }
 
 function fixSparseBlocks(blocks: LineRange[], rawLines: string[]) {
-  // compress whitespace in blocks containing very sparse lines (>70% whitespace)
+  // compress whitespace in blocks containing very sparse lines (>80% whitespace)
   const regexp = new RegExp(`\\s{${COLUMN_SPACES},}`, "g");
   for (const block of blocks) {
     let total = 0;
@@ -583,7 +583,7 @@ function handleRotationReadingOrder(textBbox: ProjectionTextBox[], pageHeight: n
         if (index != 0) {
           const previousGroup = bboxGroup[index - 1];
           const previousGroupMaxY = Math.max(...previousGroup.map((v) => v.y + v.h));
-          // pageHeight is radical but garantie no issue of allignement
+          // Use pageHeight offset to guarantee no alignment issues with other groups
           deltaY = previousGroupMaxY + pageHeight;
         }
         // clockwise rotation (90 degrees)
@@ -637,7 +637,7 @@ function handleRotationReadingOrder(textBbox: ProjectionTextBox[], pageHeight: n
           }
         }
 
-        // pageHeight is radical but garantie no issue of allignement
+        // Use pageHeight offset to guarantee no alignment issues
         const globalDelta = deltaY + groupMaxX + pageHeight;
 
         for (const [otherGroupIndex, other] of bboxGroup.entries()) {
