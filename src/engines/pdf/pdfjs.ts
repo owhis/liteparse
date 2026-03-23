@@ -462,9 +462,9 @@ export class PdfJsEngine implements PdfEngine {
       const message = error instanceof Error ? error.message : String(error);
       if (message.includes("password") || message.includes("Password")) {
         if (password) {
-          throw new Error("Incorrect password for this PDF. Please check the password and try again.");
+          throw new Error("Incorrect password for this PDF. Please check the password and try again.", { cause: error });
         } else {
-          throw new Error("This PDF is password-protected. Use --password <password> to provide the document password.");
+          throw new Error("This PDF is password-protected. Use --password <password> to provide the document password.", { cause: error });
         }
       }
       throw error;
