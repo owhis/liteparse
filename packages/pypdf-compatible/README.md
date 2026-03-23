@@ -2,6 +2,8 @@
 
 Drop-in replacement for [pypdf](https://github.com/py-pdf/pypdf) powered by [LiteParse](https://github.com/run-llama/liteparse) for higher quality text extraction.
 
+**How it works:** `extract_text()` uses LiteParse's spatial reconstruction engine for superior text extraction (especially multi-column layouts and scanned documents with OCR). Everything else — metadata, images, annotations, outlines, form fields, page manipulation — is delegated to the real pypdf library.
+
 ## Installation
 
 ```bash
@@ -16,7 +18,7 @@ npm install -g @llamaindex/liteparse
 
 ## Usage
 
-Replace your pypdf import with liteparse_pypdf — no other code changes needed:
+Replace your pypdf import — no other code changes needed:
 
 ```python
 # Before
@@ -31,39 +33,61 @@ for page in reader.pages:
     text = page.extract_text()
     print(text)
 
-print(f"Number of pages: {len(reader.pages)}")
+print(f"Title: {reader.metadata.title}")
+print(f"Pages: {len(reader.pages)}")
 ```
 
-## Supported pypdf API
+## What's enhanced vs delegated
 
-### PdfReader
+### Enhanced by LiteParse
 
-| Property / Method | Status |
+| Feature | Benefit |
 |---|---|
-| `PdfReader(path_or_stream)` | Supported (str, Path, bytes, file-like) |
-| `reader.pages` | Supported (list of PageObject) |
-| `len(reader.pages)` | Supported |
-| `reader.metadata` | Stub (returns None fields) |
-| `reader.is_encrypted` | Supported |
-| `reader.get_num_pages()` | Supported |
-| `reader.get_page(n)` | Supported (0-indexed) |
-| Context manager (`with`) | Supported |
+| `page.extract_text()` | Spatial text reconstruction with proper column alignment |
+| `page.extract_text(visitor_text=...)` | Callback with LiteParse text items |
+| OCR support | Automatic OCR on scanned/image-heavy pages |
 
-### PageObject
+### Delegated to pypdf
 
-| Property / Method | Status |
-|---|---|
-| `page.extract_text()` | Supported |
-| `page.width` / `page.height` | Supported (Decimal) |
-| `page.mediabox` | Supported |
-| `page.cropbox` / `page.trimbox` | Supported (defaults to mediabox) |
-| `page.rotation` | Stub (returns 0) |
-| `page.page_number` | Supported (0-indexed) |
-| `visitor_text` callback | Supported |
+Everything else passes through to the real pypdf, including:
 
-### LiteParse extras
+- `reader.metadata` — title, author, subject, creator, dates
+- `reader.outline` — bookmarks
+- `reader.page_labels` — page label strings
+- `reader.named_destinations` — named destinations
+- `reader.attachments` — file attachments
+- `reader.get_fields()` / `reader.get_form_text_fields()` — form data
+- `reader.xfa` — XFA form data
+- `reader.page_layout` / `reader.page_mode` — viewer settings
+- `reader.is_encrypted` / `reader.pdf_header`
+- `page.images` — embedded images
+- `page.annotations` — page annotations
+- `page.mediabox` / `cropbox` / `trimbox` / `artbox` / `bleedbox` — page boxes
+- `page.rotation` / `page.user_unit`
+- `page.rotate()` / `page.scale()` / `page.merge_page()` — page manipulation
+- `page["/Resources"]` — dict-like PDF dictionary access
+- `PdfWriter` — re-exported directly from pypdf
 
-Beyond the pypdf interface, pages expose additional LiteParse data:
+### Re-exported from pypdf
+
+These are available directly from `liteparse_pypdf` so you don't need a separate pypdf import:
+
+```python
+from liteparse_pypdf import (
+    PdfReader,          # Enhanced with LiteParse
+    PdfWriter,          # Direct from pypdf
+    DocumentInformation,
+    PdfReadError,
+    PdfStreamError,
+    PageSizeNotDefinedError,
+    FileNotDecryptedError,
+    PdfReadWarning,
+)
+```
+
+## LiteParse extras
+
+Pages expose additional spatial data not available in pypdf:
 
 ```python
 page = reader.pages[0]
@@ -71,22 +95,16 @@ page.text_items      # List of TextItem with x, y, width, height, font info
 page.bounding_boxes  # List of BoundingBox with x1, y1, x2, y2
 ```
 
-### LiteParse options
+## LiteParse options
 
 Pass LiteParse-specific options to the reader constructor:
 
 ```python
 reader = PdfReader(
     "document.pdf",
-    ocr_enabled=True,
-    ocr_language="en",
-    dpi=300,
+    ocr_enabled=True,       # Enable OCR for scanned pages
+    ocr_language="en",      # OCR language
+    dpi=300,                # Higher DPI for better OCR
+    ocr_server_url="...",   # Optional HTTP OCR server
 )
 ```
-
-## Unsupported
-
-- `PdfWriter` — LiteParse is read-only
-- PDF metadata extraction (title, author, etc.)
-- Page-level transformations (`merge_page`, `add_transformation`)
-- Form field operations
