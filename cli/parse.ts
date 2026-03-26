@@ -26,6 +26,7 @@ interface ParseCommandOptions {
   dpi?: string;
   preciseBbox?: boolean;
   preserveSmallText?: boolean;
+  detectImages?: boolean;
   password?: string;
   config?: string;
   quiet?: boolean;
@@ -81,6 +82,7 @@ program
   .option("--dpi <dpi>", "DPI for rendering", DEFAULT_DPI.toString())
   .option("--no-precise-bbox", "Disable precise bounding boxes")
   .option("--preserve-small-text", "Preserve very small text")
+  .option("--detect-images", "Detect embedded images (logos, photos, charts) via PDFium")
   .option("--password <password>", "Password for encrypted/protected documents")
   .option("--config <file>", "Config file (JSON)")
   .option("-q, --quiet", "Suppress progress output")
@@ -125,6 +127,7 @@ program
         dpi: parseInt(options.dpi || DEFAULT_DPI.toString()),
         preciseBoundingBox: options.preciseBbox !== false,
         preserveVerySmallText: options.preserveSmallText || false,
+        detectImages: options.detectImages || false,
         password: options.password,
       };
 

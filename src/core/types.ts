@@ -136,6 +136,15 @@ export interface LiteParseConfig {
    * @defaultValue `undefined`
    */
   password?: string;
+
+  /**
+   * Detect embedded images (logos, photos, charts) using PDFium and populate
+   * the `images` array on each page. When enabled, this also allows OCR to
+   * trigger on pages that contain images but have sufficient native text.
+   *
+   * @defaultValue `false`
+   */
+  detectImages: boolean;
 }
 
 /**
