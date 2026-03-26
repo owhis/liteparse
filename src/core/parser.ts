@@ -422,7 +422,6 @@ export class LiteParse {
               h: (r.bbox[3] - r.bbox[1]) * scaleFactor,
               fontName: "OCR",
               fontSize: (r.bbox[3] - r.bbox[1]) * scaleFactor,
-              fromOCR: true,
               confidence: Math.round(r.confidence * 1000) / 1000,
             };
           })

@@ -595,6 +595,7 @@ export class PdfJsEngine implements PdfEngine {
         fontSize: Math.sqrt(
           item.transform[0] * item.transform[0] + item.transform[1] * item.transform[1]
         ),
+        confidence: 1.0,
       });
     }
 

@@ -114,6 +114,7 @@ function getExpectedResults() {
       r: 0,
       fontName: "Helvetica",
       fontSize: 12,
+      confidence: 1.0,
     },
     {
       str: "Second line of text",
@@ -126,6 +127,7 @@ function getExpectedResults() {
       r: 0,
       fontName: "Times-Roman",
       fontSize: 10,
+      confidence: 1.0,
     },
   ];
 }
