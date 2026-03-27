@@ -1,6 +1,15 @@
 use pdfium_render::prelude::*;
 use serde::Serialize;
 
+// If gap is < fontSize * CHAR_X_GAP_THRESHOLD, consider it part of the same word
+const CHAR_X_GAP_THRESHOLD: f32 = 0.3; 
+
+// If gap is < fontSize * NEGATIVE_X_GAP_THRESHOLD, consider it a negative gap (e.g. kerning) and start a new word
+const NEGATIVE_X_GAP_THRESHOLD: f32 = -0.2;
+
+// If gap is > fontSize * CHAR_Y_GAP_THRESHOLD, consider it a new item
+const CHAR_Y_GAP_THRESHOLD: f32 = 0.25; 
+
 #[derive(Debug, Serialize)]
 struct TextItem {
     text: String,
@@ -38,27 +47,71 @@ pub fn extract(pdf_path: &str, page_num: Option<u32>) -> Result<(), Box<dyn std:
         }
 
         let mut text_items = Vec::new();
-        let mut cur_item = TextItem {
-            text: String::new(),
-            x: 0.0,
-            y: 0.0,
-            width: 0.0,
-            height: 0.0,
-            font_name: None,
-            font_size: None,
-        };
+        let mut cur_item: Option<TextItem> = None;
 
         for object in page.objects().iter() {
             if let Some(object) = object.as_text_object() {
-                text_items.push(TextItem {
-                    text: object.text().to_string(),
-                    x: object.bounds().unwrap().x1.value,
-                    y: object.bounds().unwrap().y1.value,
-                    width: object.width().unwrap().value,
-                    height: object.height().unwrap().value,
-                    font_name: Some(object.font().family().to_string()),
-                    font_size: Some(object.unscaled_font_size().value)
-                });
+                let obj_x = object.bounds().unwrap().x1.value;
+                let obj_y = object.bounds().unwrap().y1.value;
+                let obj_w = object.width().unwrap().value;
+                // Use font size as a consistent height (pdfium heigh is very glyph-dependent)
+                let obj_h = object.scaled_font_size().value;
+                let obj_font_size = object.scaled_font_size().value;
+
+                if let Some(ref mut item) = cur_item {
+                    let cur_font_size = item.font_size.unwrap_or(obj_font_size);
+                    let x_gap = obj_x - (item.x + item.width);
+                    let y_gap = (item.y - obj_y).abs();
+                    
+                    if x_gap < cur_font_size * NEGATIVE_X_GAP_THRESHOLD {
+                        // Negative gap (e.g. kerning) — start new item
+                        text_items.push(cur_item.take().unwrap());
+                        cur_item = Some(TextItem {
+                            text: object.text().to_string(),
+                            x: obj_x,
+                            y: obj_y,
+                            width: obj_w,
+                            height: obj_h,
+                            font_name: Some(object.font().family().to_string()),
+                            font_size: Some(obj_font_size),
+                        });
+                    } else if x_gap < cur_font_size * CHAR_X_GAP_THRESHOLD && y_gap < cur_font_size * CHAR_Y_GAP_THRESHOLD {
+                        // Same word — merge directly
+                        item.text.push_str(object.text().trim_start());
+                        item.width = (obj_x + obj_w) - item.x;
+                        item.height = f32::max(item.height, obj_h);
+                    } else {
+                        // Large gap — flush current item and start new one
+                        text_items.push(cur_item.take().unwrap());
+                        cur_item = Some(TextItem {
+                            text: object.text().to_string(),
+                            x: obj_x,
+                            y: obj_y,
+                            width: obj_w,
+                            height: obj_h,
+                            font_name: Some(object.font().family().to_string()),
+                            font_size: Some(obj_font_size),
+                        });
+                    }
+                } else {
+                    // First text object on this page
+                    cur_item = Some(TextItem {
+                        text: object.text().to_string(),
+                        x: obj_x,
+                        y: obj_y,
+                        width: obj_w,
+                        height: obj_h,
+                        font_name: Some(object.font().family().to_string()),
+                        font_size: Some(obj_font_size),
+                    });
+                }
+            }
+        }
+    
+        // Push the last item if it has text
+        if let Some(item) = cur_item.take() {
+            if !item.text.is_empty() {
+                text_items.push(item);
             }
         }
 
