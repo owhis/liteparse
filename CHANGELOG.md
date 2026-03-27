@@ -1,5 +1,17 @@
 # @llamaindex/liteparse
 
+## 1.4.0
+
+### Minor Changes
+
+- [#64](https://github.com/run-llama/liteparse/pull/64) [`ab3df58`](https://github.com/run-llama/liteparse/commit/ab3df583fcbf6f0333a0649f7b4bd7331e5d547a) Thanks [@llrightll](https://github.com/llrightll)! - Add confidence scores to TextItems
+
+- [#71](https://github.com/run-llama/liteparse/pull/71) [`57adda1`](https://github.com/run-llama/liteparse/commit/57adda15e6a45832e7f3a1311fb475c7221c1dc8) Thanks [@saravananravi08](https://github.com/saravananravi08)! - Add internal image detection for OCR
+
+### Patch Changes
+
+- [#78](https://github.com/run-llama/liteparse/pull/78) [`d341371`](https://github.com/run-llama/liteparse/commit/d341371eae7c2fa8feb234af732cf30e978230b3) Thanks [@logan-markewich](https://github.com/logan-markewich)! - Improve searchItems output on complex text
+
 ## 1.3.2
 
 ### Patch Changes
