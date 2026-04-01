@@ -81,9 +81,33 @@ type TextBoxSize = {
   height: number;
 };
 
+type LineMetrics = {
+  top: number;
+  bottom: number;
+  height: number;
+};
+
 function roundAnchor(anchor: number): number {
   // group anchor x-coord by nearest 1/4 unit
   return Math.round(anchor * 4) / 4;
+}
+
+function getRepresentativeLineMetrics(
+  line: ProjectionTextBox[],
+  globalMedianHeight: number
+): LineMetrics {
+  const minRepresentativeHeight = globalMedianHeight * 0.5;
+  const representativeItems = line.filter((bbox) => bbox.h >= minRepresentativeHeight);
+  const items = representativeItems.length > 0 ? representativeItems : line;
+
+  const top = Math.min(...items.map((bbox) => bbox.y));
+  const bottom = Math.max(...items.map((bbox) => bbox.y + bbox.h));
+
+  return {
+    top,
+    bottom,
+    height: bottom - top,
+  };
 }
 
 // 2pt @ PDF 72 DPI -> 8px @ 300DPI
@@ -1022,13 +1046,20 @@ export function bboxToLine(
   }
 
   for (let i = 1; i < lines.length; i++) {
-    const yDelta = lines[i][0].y - lines[i - 1][0].y - lines[i - 1][0].h;
+    const previousLineMetrics = getRepresentativeLineMetrics(lines[i - 1], medianHeight);
+    const currentLineMetrics = getRepresentativeLineMetrics(lines[i], medianHeight);
+    const yDelta = currentLineMetrics.top - previousLineMetrics.bottom;
+    const referenceHeight = Math.max(
+      medianHeight,
+      Math.min(previousLineMetrics.height, currentLineMetrics.height)
+    );
+
     // Calculate the number of blank lines to insert based on vertical spacing
     // Use medianHeight as a reference for one line spacing
-    if (yDelta > medianHeight) {
+    if (yDelta > referenceHeight) {
       // Calculate how many blank lines should be inserted
       // Round to nearest integer to get approximate number of lines
-      const numBlankLines = Math.round(yDelta / medianHeight) - 1;
+      const numBlankLines = Math.round(yDelta / referenceHeight) - 1;
       // Cap at a reasonable maximum (e.g., 10 blank lines) to avoid extreme cases
       const linesToInsert = Math.min(Math.max(numBlankLines, 1), 10);
 
