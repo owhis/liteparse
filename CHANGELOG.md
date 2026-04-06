@@ -1,5 +1,11 @@
 # @llamaindex/liteparse
 
+## 1.4.5
+
+### Patch Changes
+
+- [#118](https://github.com/run-llama/liteparse/pull/118) [`4fdf3c9`](https://github.com/run-llama/liteparse/commit/4fdf3c9358c22e50e742c2b7d866ae35b83a63cd) Thanks [@mkh09353](https://github.com/mkh09353)! - Honor the OCR rotation-correction option in the built-in Tesseract engine by mapping it to Tesseract.js auto-rotation.
+
 ## 1.4.4
 
 ### Patch Changes
