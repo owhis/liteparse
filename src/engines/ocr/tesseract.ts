@@ -117,7 +117,12 @@ export class TesseractEngine implements OcrEngine {
       // In tesseract.js v6+, we need to enable blocks output to get word-level data
       const {
         data: { blocks },
-      } = await this.scheduler.addJob("recognize", image, {}, { blocks: true });
+      } = await this.scheduler.addJob(
+        "recognize",
+        image,
+        options.correctRotation ? { rotateAuto: true } : {},
+        { blocks: true }
+      );
 
       // Extract words from hierarchical blocks structure: blocks → paragraphs → lines → words
       const results: OcrResult[] = [];
