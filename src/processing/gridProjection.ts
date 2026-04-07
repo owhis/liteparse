@@ -166,7 +166,7 @@ function isStructuredLine(line: ProjectionTextBox[], pageWidth: number): boolean
   if (line.length < 3) return false;
   const leftEdge = line[0].x;
   const rightEdge = line[line.length - 1].x + line[line.length - 1].w;
-  return (rightEdge - leftEdge) > pageWidth * 0.4;
+  return rightEdge - leftEdge > pageWidth * 0.4;
 }
 
 /**
