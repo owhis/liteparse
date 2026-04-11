@@ -8,11 +8,11 @@
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",.ts"
+      ".js"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "build": "ts cjs,esm --dts",
     "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -37,10 +37,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/your-org/liteparse.git"
-  },data": "^4.0.0"
-  /eslint-plugin":",
-    "@typescript-eslint/parser": "^6.19.0",
-    "eslint": "^8.56.0",
+  },
+  "dev    "@typescriptint-plugin": "^6parser": "^6.1956.0",
     "tsup": "^8.0.1",
     "typescript": "^5.3.3",
     "vitest": "^1.2.1"
