@@ -38,13 +38,12 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/your-org/liteparse.git"
+  "
   },
-  "bugs": {
-    "url": "https://github.com/your-org/liteparse/issues"
+    "dependencies": {
+    "form-data": "^4.0.0"
   },
-  "homepage": "https://github.com/your-org/liteparse#readme",
-  "dependencies": {
-    "form.5",
+  "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "eslint": "^8.56.0",
