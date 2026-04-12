@@ -35,8 +35,6 @@
     "type": "git",
     "url": "https://github.com/your-org/liteparse.git"
   },
- {
-    "@typescript-^5.3.3",
-    "vitest": "^1.2.1"
-  }
+Dependencies": {
+    "typescriptn  }
 }
