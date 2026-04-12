@@ -35,11 +35,8 @@
     "type": "git",
     "url": "https://github.com/your-org/liteparse.git"
   },
-  "devDependencies": {
-    "@typescript-eslint/parser": "^6.0.0",
-    "tsup": "^8.0.0",
-    "typescript": "^5.3.3",
+ {
+    "@typescript-^5.3.3",
     "vitest": "^1.2.1"
-  },"
-  ]
+  }
 }
