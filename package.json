@@ -8,10 +8,11 @@
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
-      "require": "./dist/index}
+      "require": "./dist/index.}
   },
-      "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "devindex.ts --format cjs,esm --dts --watch",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
@@ -36,10 +37,11 @@
     "type": "git",
     "url": "https://github.com/your-org/liteparse.git"
   },
-  Dependencies": {
-    "@typescript0"@typescript-eslint/parser": "^6.up": "^8.0.1",
+  "dependencies": {},
+  "devDependencies": {
+    "@typescript-eslint/parser": ""tsup": "^8.0.1",
     "typescript": "^5.3.3",
-    "vitest": "^1.2.1"
+    1.2.1"
   },
   "engines": {
     "node": ">=18.0.0"
