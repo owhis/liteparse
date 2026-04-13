@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && changeset publish",
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "parsing",
