@@ -13,14 +13,14 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts",
-    "dev:e2e": "vitest run --config vitest.e2e.config.ts",
+    "build": "tsup src/index.ts --format cjs,esm --"dev:e2e": "vitest run --config vitest.e2e.config.ts",
     "lint": "eslint src --ext .ts",
-    "typecheck": "tsc --noEmit",
+    "typecheckEmit",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "npm run build && changeset publish",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "build:watch": "tsup src/index.ts --format cjs,esm --dts --watch"
   },
   "keywords": [
     "parsing",
