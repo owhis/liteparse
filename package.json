@@ -9,7 +9,7 @@
     ".": {
       "import": "./dist/index.mjs",
       "require": "./dist/index.js",
-      "types":.ts"
+      "types": "./dist/index.d.ts"
     }
   },
   "scripts": {
@@ -37,5 +37,6 @@
     "url": "https://github.com/your-org/liteparse.git"
   },
   "devDependencies": {
-    "typescriptn  }
+    "typescript": "^5.0.0"
+  }
 }
